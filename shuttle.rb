@@ -18,8 +18,11 @@ Whirly.configure spinner: 'dots'
 class Shuttle
   include Commander::Methods
 
-  @mysql = { host: nil, username: nil, password: nil }
+  @mysql = nil
   @mysql_client = nil
+
+  @ssh = nil
+  @ssh_client = nil
 
   @port = nil
   @ftp_object = nil
@@ -28,12 +31,20 @@ class Shuttle
   @username = nil
   @password = nil
 
-  global_option('-p', '--production', 'Flag to use production databases. Default is localhost for MYSQL otherwise.')
+  @production = nil
+
+  def initialize(opts={})
+    @mysql = { host: nil, username: nil, password: nil }
+    @ssh = { host: nil, username: nil, password: nil }
+    @production = false
+  end
 
   def run
     program :name, 'Shuttle'
     program :version, '0.1.0'
     program :description, 'A tool to migrate backups for Tempus Fuget.'
+
+    global_option('-p', '--production', 'Flag to use production databases. Default is localhost for MYSQL otherwise.')
 
     command :download do |c|
       c.syntax = 'shuttle download [options]'
@@ -43,6 +54,8 @@ class Shuttle
       c.option '-p STRING', String, 'Password for user. (empty if using a key)'
 
       c.action do |args, options|
+        @production = options.production
+
         error 'Missing ' + '--host'.yellow + ' option' if options.host.nil?
         error 'Missing ' + '-u'.yellow + ' (username) option' if options.u.nil?
 
@@ -65,12 +78,21 @@ class Shuttle
       c.option '--mysql_p STRING', String, 'Password for mysql user.'
 
       c.action do |args, options|
+        @production = options.production
+        
         error 'Missing ' + '--host'.yellow + ' option' if options.host.nil?
         error 'Missing ' + '-u'.yellow + ' (username) option' if options.u.nil?
-        if(options.production)
+        if options.production
           error 'Missing ' + '--mysql_host'.yellow + ' option' if options.mysql_host.nil?
           error 'Missing ' + '--mysql_u'.yellow + ' option' if options.mysql_u.nil?
           error 'Missing ' + '--mysql_p'.yellow + ' option' if options.mysql_p.nil?
+
+          error 'Missing ' + '--host'.yellow + ' option' if options.host.nil?
+          error 'Missing ' + '-u'.yellow + ' (username) option' if options.u.nil?
+
+          @host = options.host
+          @username = options.u
+          @password = options.p
 
           @mysql[:host] = options.mysql_host
           @mysql[:username] = options.mysql_u
@@ -84,6 +106,10 @@ class Shuttle
         @host = options.host
         @username = options.u
         @password = options.p
+
+        # create_database 'test', options.production
+        move_database 'google_data_studio', 'google_data_studio_old'
+
       end
     end
 
@@ -167,7 +193,21 @@ class Shuttle
   # SSH Management
   #
 
-  def connect_to_ssh(host, tunnel_host, username)
+  def connect_to_ssh(host, username)
+    ssh = nil
+    Whirly.start status: "Connecting to #{host} via ssh...".green do
+      begin
+          ssh = Net::SSH.start(host, username)
+        rescue
+          error "Unable to connect to #{host} using #{username}"
+        end
+    end
+
+    say "Connected to #{host} server ".green + '‎️‍🌈'
+    ssh
+  end
+
+  def connect_to_ssh_tunnel(host, tunnel_host, username)
     gateway = Net::SSH::Gateway.new(host, username)
     port = gateway.open(tunnel_host, 3306, 3307)
     port
@@ -192,42 +232,71 @@ class Shuttle
     client.close
   end
 
-  def connect_to_db(db_name)
-
-  end
-
-  def create_new_databases
-
-  end
+  def connect_to_db(db_name); end
 
   def create_database(db_name)
-    mysql_client.query("CREATE DATABASE #{db_name}")
+    run_sql_command("CREATE DATABASE #{db_name}", true)
   end
 
   def delete_database(db_name); end
 
-  def rename_database(from, to); end
+  def check_if_mysqldump_is_installed
+    results = @production ? ssh_client.exec!('mysqldump -V') : `mysqldump -V`
+    return false if results.include?'command not found'
+    true
+  end
+
+  def move_database(from, to)
+    create_database(to)
+
+    tables = tables_in_db from
+
+    tables.each do |table|
+      run_sql_command("RENAME TABLE #{from}.#{table} TO #{to}.#{table};")
+    end
+  end
+
+  def tables_in_db(db)
+    command = "SHOW TABLES FROM #{db};"
+    tables = run_sql_command(command)
+    tables.collect { |table| table.values.first }
+  end
 
   def run_sql_commands; end
 
-  def run_sql_command(command); end
+  def run_sql_command(command, continue_on_error = false)
+    begin
+      mysql_client.query(command)
+    rescue => exception
+      error exception.to_s, continue_on_error
+      throw exception unless continue_on_error
+    end
+  end
 
-  def mysql_client
+  def mysql_client(production = @production)
     return @mysql_client unless @mysql_client.nil?
 
-    @port = connect_to_ssh(@host, @mysql[:host], @username)
+    @port = production ? connect_to_ssh_tunnel(@host, @mysql[:host], @username) : '3306'
+    error '"mysqldump" must be installed on server for script to work' unless check_if_mysqldump_is_installed
     @mysql_client = connect_to_mysql('127.0.0.1', @mysql[:username], @mysql[:password], nil, @port)
     @mysql_client
   end
 
-  def error(message)
+  def ssh_client(production = @production)
+    return @ssh_client unless @ssh_client.nil?
+
+    @ssh_client = connect_to_ssh(@host, @username)
+    @ssh_client
+  end
+
+  def error(message, continue = false)
     spacing = '     '
     say '------------------------------------------------------------'.red
     say spacing + '💥 Error:'.red
     say spacing + message if message.is_a? String
     message.each { |line| say spacing + line } if message.is_a? Array
     say '------------------------------------------------------------'.red
-    exit
+    exit unless continue
   end
 
 end
