@@ -114,8 +114,8 @@ class Shuttle
     end
 
     command :testssh do |c|
-      c.syntax = 'shuttle testmysql [options]'
-      c.description = 'Test an SSH tunnel and the MYSQL connection.'
+      c.syntax = 'shuttle testssh [options]'
+      c.description = 'Test an SSH connection.'
       c.option '--host STRING', String, 'SSH host to connect to.'
       c.option '-u STRING', String, 'Username for ssh host.'
       c.option '-p STRING', String, 'Password for ssh user. (empty if using a key)'
