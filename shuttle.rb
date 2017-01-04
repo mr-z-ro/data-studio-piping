@@ -113,6 +113,30 @@ class Shuttle
       end
     end
 
+    command :testssh do |c|
+      c.syntax = 'shuttle testmysql [options]'
+      c.description = 'Test an SSH tunnel and the MYSQL connection.'
+      c.option '--host STRING', String, 'SSH host to connect to.'
+      c.option '-u STRING', String, 'Username for ssh host.'
+      c.option '-p STRING', String, 'Password for ssh user. (empty if using a key)'
+      c.action do |args, options|
+        @production = options.production
+
+        error 'Missing ' + '--host'.yellow + ' option' if options.host.nil?
+        error 'Missing ' + '-u'.yellow + ' (username) option' if options.u.nil?
+        if options.production
+        else
+        end
+
+        @host = options.host
+        @username = options.u
+        @password = options.p
+
+        installed = check_if_mysqldump_is_installed
+        byebug
+      end
+    end
+
     run!
 
     # Just in case it's left open
