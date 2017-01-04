@@ -11,6 +11,8 @@ require 'net/ssh/gateway'
 BACKUP_FILE_LOCATION = '/home/openair/'.freeze
 BACKUP_FILE_PREFIX = 'openair_'.freeze
 
+DOWNLOADED_FILE_NAME = 'tempfile'.freeze
+
 MB_DIVISOR = 1_048_576
 
 Whirly.configure spinner: 'dots'
@@ -79,7 +81,7 @@ class Shuttle
 
       c.action do |args, options|
         @production = options.production
-        
+
         error 'Missing ' + '--host'.yellow + ' option' if options.host.nil?
         error 'Missing ' + '-u'.yellow + ' (username) option' if options.u.nil?
         if options.production
@@ -124,16 +126,64 @@ class Shuttle
 
         error 'Missing ' + '--host'.yellow + ' option' if options.host.nil?
         error 'Missing ' + '-u'.yellow + ' (username) option' if options.u.nil?
+        # if options.production
+        # else
+        # end
+
+        @host = options.host
+        @username = options.u
+        @password = options.p
+
+        installed = check_if_mysql_is_installed
+
+        success 'SSH is working properly' if installed
+        error 'SSH is not correctly connecting or mysql is not installed' unless installed
+      end
+    end
+
+    command :run do |c|
+      c.syntax = 'shuttle run [options]'
+      c.description = 'Run full lifecycle.'
+      c.option '--host STRING', String, 'SSH host to connect to.'
+      c.option '-u STRING', String, 'Username for ssh host.'
+      c.option '-p STRING', String, 'Password for ssh user. (empty if using a key)'
+      c.option '--mysql_host STRING', String, 'Host for mysql.'
+      c.option '--mysql_u STRING', String, 'Username for mysql user.'
+      c.option '--mysql_p STRING', String, 'Password for mysql user.'
+
+      c.action do |args, options|
+        @production = options.production
+
         if options.production
+          error 'Missing ' + '--mysql_host'.yellow + ' option' if options.mysql_host.nil?
+          error 'Missing ' + '--mysql_u'.yellow + ' option' if options.mysql_u.nil?
+          error 'Missing ' + '--mysql_p'.yellow + ' option' if options.mysql_p.nil?
+
+          error 'Missing ' + '--host'.yellow + ' option' if options.host.nil?
+          error 'Missing ' + '-u'.yellow + ' (username) option' if options.u.nil?
+
+          @mysql[:host] = options.mysql_host
+          @mysql[:username] = options.mysql_u
+          @mysql[:password] = options.mysql_p
         else
+          @mysql[:host] = '127.0.0.1'
+          @mysql[:username] = 'root'
+          @mysql[:password] = 'root'
         end
 
         @host = options.host
         @username = options.u
         @password = options.p
 
-        installed = check_if_mysqldump_is_installed
-        byebug
+        # create_database 'test', options.production
+        download_backup
+        create_database 'google_data_studio_new'
+        import_mysql_backup "./#{DOWNLOADED_FILE_NAME}.zip", 'google_data_studio_new'
+        # Run commands against google_data_studio_new
+        create_database 'google_data_studio_old'
+        move_database 'google_data_studio', 'google_data_studio_old'
+        move_database 'google_data_studio_new', 'google_data_studio'
+
       end
     end
 
@@ -154,8 +204,21 @@ class Shuttle
     file = check_if_backup_exists
     error 'Backup file not found on FTP server.' if file.nil?
 
-    final_location = './tempfile'
+    final_location = './#{DOWNLOADED_FILE_NAME}.zip'
     download_file(file, final_location)
+    unzip_file final_location
+  end
+
+  def unzip_file(filename)
+    # I have no idea if this'll work on *nix boxes, but it works on MacOS
+    result = nil
+    filename = File.basename("./#{filename}", '.zip') if filename.include? '.zip'
+    Whirly.start status: 'Unzipping backup file'.green do
+      result = `unzip -o #{filename}.zip -d #{filename}`
+    end
+
+    error "Cannot find or open file #{filname}" if result.include? 'cannot find'
+    success 'Successfully unzipped backup file'
   end
 
   def check_if_backup_exists
@@ -264,8 +327,8 @@ class Shuttle
 
   def delete_database(db_name); end
 
-  def check_if_mysqldump_is_installed
-    results = @production ? ssh_client.exec!('mysqldump -V') : `mysqldump -V`
+  def check_if_mysql_is_installed
+    results = @production ? ssh_client.exec!('mysql -V') : `mysql -V`
     return false if results.include?'command not found'
     true
   end
@@ -286,6 +349,21 @@ class Shuttle
     tables.collect { |table| table.values.first }
   end
 
+  def import_mysql_backup(directory, db_name)
+    error 'Cannot find directory to import MYSQL from' unless Dir.exist?(directory)
+
+    import_mysql_backup_file "#{directory}/mysql.sql", db_name
+    import_mysql_backup_file "#{directory}/mysql_1.sql", db_name
+  end
+
+  def import_mysql_backup_file(file, db_name)
+    error 'Cannot find file #{file}' unless File.exist?(file)
+    Whirly.start status: "Importing #{file}".green do
+      `mysql --host #{@mysql[:host]} --user #{@mysql[:username]} -p#{@mysql[:password]} openair < #{file} --force`
+    end
+    say "#{file} successfully imported"
+  end
+
   def run_sql_commands; end
 
   def run_sql_command(command, continue_on_error = false)
@@ -301,7 +379,7 @@ class Shuttle
     return @mysql_client unless @mysql_client.nil?
 
     @port = production ? connect_to_ssh_tunnel(@host, @mysql[:host], @username) : '3306'
-    error '"mysqldump" must be installed on server for script to work' unless check_if_mysqldump_is_installed
+    error '"mysql" must be installed on server for script to work' unless check_if_mysql_is_installed
     @mysql_client = connect_to_mysql('127.0.0.1', @mysql[:username], @mysql[:password], nil, @port)
     @mysql_client
   end
@@ -316,10 +394,20 @@ class Shuttle
   def error(message, continue = false)
     spacing = '     '
     say '------------------------------------------------------------'.red
-    say spacing + '💥 Error:'.red
+    say spacing + '💥Error💥'.red
     say spacing + message if message.is_a? String
     message.each { |line| say spacing + line } if message.is_a? Array
     say '------------------------------------------------------------'.red
+    exit unless continue
+  end
+
+  def success(message, continue = true)
+    spacing = '     '
+    say '------------------------------------------------------------'.green
+    say spacing + '✨Success✨'.green
+    say spacing + message if message.is_a? String
+    message.each { |line| say spacing + line } if message.is_a? Array
+    say '------------------------------------------------------------'.green
     exit unless continue
   end
 
