@@ -110,7 +110,7 @@ class Shuttle
         @password = options.p
 
         # create_database 'test', options.production
-        move_database 'google_data_studio', 'google_data_studio_old'
+        move_database 'openair', 'openair_old'
 
       end
     end
@@ -177,12 +177,12 @@ class Shuttle
 
         # create_database 'test', options.production
         download_backup
-        create_database 'google_data_studio_new'
-        import_mysql_backup "./#{DOWNLOADED_FILE_NAME}.zip", 'google_data_studio_new'
-        # Run commands against google_data_studio_new
-        create_database 'google_data_studio_old'
-        move_database 'google_data_studio', 'google_data_studio_old'
-        move_database 'google_data_studio_new', 'google_data_studio'
+        create_database 'openair_new'
+        import_mysql_backup "./#{DOWNLOADED_FILE_NAME}", 'openair_new'
+        # Run commands against openair_new
+        create_database 'openair_old'
+        move_database 'openair', 'openair_old'
+        move_database 'openair_new', 'openair'
 
       end
     end
@@ -204,7 +204,7 @@ class Shuttle
     file = check_if_backup_exists
     error 'Backup file not found on FTP server.' if file.nil?
 
-    final_location = './#{DOWNLOADED_FILE_NAME}.zip'
+    final_location = "./#{DOWNLOADED_FILE_NAME}.zip"
     download_file(file, final_location)
     unzip_file final_location
   end
@@ -357,11 +357,16 @@ class Shuttle
   end
 
   def import_mysql_backup_file(file, db_name)
+    # NOTE: You have to disable STRICT_TRANS_TABLES.
+    # I do that in the docker container with `mysqld --sql_mode=""`
+    # But you should figure it out yourself for your setup
+    # https://stackoverflow.com/questions/36374335/error-in-mysql-when-setting-default-value-for-date-or-datetime/36374690#36374690
+
     error 'Cannot find file #{file}' unless File.exist?(file)
     Whirly.start status: "Importing #{file}".green do
-      `mysql --host #{@mysql[:host]} --user #{@mysql[:username]} -p#{@mysql[:password]} openair < #{file} --force`
+      `mysql --host #{@mysql[:host]} --user #{@mysql[:username]} -p#{@mysql[:password]} #{db_name} < #{file} --force`
     end
-    say "#{file} successfully imported"
+    say "#{file} successfully imported into #{db_name}"
   end
 
   def run_sql_commands; end
