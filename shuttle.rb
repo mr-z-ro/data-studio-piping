@@ -6,6 +6,7 @@ require 'whirly'
 require 'ruby-progressbar'
 require 'mysql2'
 require 'net/ssh/gateway'
+require 'fileutils'
 
 
 BACKUP_FILE_LOCATION = '/home/openair/'.freeze
@@ -179,11 +180,19 @@ class Shuttle
         download_backup
         create_database 'openair_new'
         import_mysql_backup "./#{DOWNLOADED_FILE_NAME}", 'openair_new'
-        # Run commands against openair_new
+        load_procedures './stored_procedures.sql'
         create_database 'openair_old'
+        create_database 'google_data_studio_old'
         move_database 'openair', 'openair_old'
         move_database 'openair_new', 'openair'
+        move_database 'google_data_studio', 'google_data_studio_old'
+        create_database 'google_data_studio'
+        move_database 'google_data_studio_new', 'google_data_studio'
 
+        # cleanup
+        delete_database('openair_new')
+        delete_database('google_data_studio_new')
+        delete("./#{DOWNLOADED_FILE_NAME}")
       end
     end
 
@@ -207,6 +216,7 @@ class Shuttle
     final_location = "./#{DOWNLOADED_FILE_NAME}.zip"
     download_file(file, final_location)
     unzip_file final_location
+    delete final_location
   end
 
   def unzip_file(filename)
@@ -219,6 +229,10 @@ class Shuttle
 
     error "Cannot find or open file #{filname}" if result.include? 'cannot find'
     success 'Successfully unzipped backup file'
+  end
+
+  def delete(filename)
+    File.directory?(filename) ? FileUtils.rm_r(filename) : File.delete(filename)
   end
 
   def check_if_backup_exists
@@ -322,10 +336,12 @@ class Shuttle
   def connect_to_db(db_name); end
 
   def create_database(db_name)
-    run_sql_command("CREATE DATABASE #{db_name}", true)
+    run_sql_command("CREATE DATABASE IF NOT EXISTS #{db_name}", true)
   end
 
-  def delete_database(db_name); end
+  def delete_database(db_name)
+    run_sql_command("DROP DATABASE IF EXISTS #{db_name}", true)
+  end
 
   def check_if_mysql_is_installed
     results = @production ? ssh_client.exec!('mysql -V') : `mysql -V`
@@ -394,6 +410,17 @@ class Shuttle
 
     @ssh_client = connect_to_ssh(@host, @username)
     @ssh_client
+  end
+
+  def load_procedures(filename)
+    contents = File.read(filename)
+    commands = contents.split '#$#$#$'
+    Whirly.start status: "Running Stored Procedures in #{filename}".green do
+      commands.each do |command|
+        run_sql_command(command, true)
+      end
+    end
+    success 'Successfully ran stored procedures.'
   end
 
   def error(message, continue = false)
