@@ -177,22 +177,44 @@ class Shuttle
         @password = options.p
 
         # create_database 'test', options.production
-        download_backup
+        #download_backup
+
+        # Create new database to manipulate the data in
+        delete_database 'openair_new'
         create_database 'openair_new'
         import_mysql_backup "./#{DOWNLOADED_FILE_NAME}", 'openair_new'
-        load_procedures './stored_procedures.sql'
-        create_database 'openair_old'
-        create_database 'google_data_studio_old'
-        move_database 'openair', 'openair_old'
-        move_database 'openair_new', 'openair'
-        move_database 'google_data_studio', 'google_data_studio_old'
-        create_database 'google_data_studio'
-        move_database 'google_data_studio_new', 'google_data_studio'
 
-        # cleanup
-        delete_database('openair_new')
-        delete_database('google_data_studio_new')
-        delete("./#{DOWNLOADED_FILE_NAME}")
+        # The procedures create the new database, don't want it to be there already
+        delete_database 'google_data_studio_new'
+        load_procedures './stored_procedures.sql'
+
+        # say "Backing up current databases and moving new databases into place...\n"
+        # # This creates the databases if they don't exist
+        # create_database 'openair'
+
+        # # Create backup
+        # delete_database 'openair_old'
+        # create_database 'openair_old'
+        # move_database 'openair', 'openair_old'
+
+        # # Make our new one live
+        # move_database 'openair_new', 'openair'
+
+        # # If there's not a google database already'
+        # create_database 'google_data_studio'
+        # delete_database 'google_data_studio_old'
+        # create_database 'google_data_studio_old'
+
+        # # Make backup and make new database live
+        # move_database 'google_data_studio', 'google_data_studio_old'
+        # move_database 'google_data_studio_new', 'google_data_studio'
+
+        # # cleanup
+        # say "Cleaning up files and old databases...\n"
+        # delete_database('openair_new')
+        # delete_database('google_data_studio_new')
+        # delete("./#{DOWNLOADED_FILE_NAME}")
+        success 'Update complete! 🎉🎉🎉'
       end
     end
 
@@ -204,10 +226,11 @@ class Shuttle
 
   # Steps needed
   # 1. Download backup from ftp server - 💥
-  # 2. Import SQL backup to MYSQL server in _new database
-  # 3. Run SQL commands against _new database
-  # 4. Rename original database to _old
-  # 5. Rename _new to original names
+  # 2. Import SQL backup to MYSQL server in _new database - 💥
+  # 3. Run SQL commands against _new database - 💥
+  # 4. Rename original database to _old - 💥
+  # 5. Rename _new to original names - 💥
+  # 6. Clean up old stuff - 💥
 
   def download_backup
     file = check_if_backup_exists
@@ -257,7 +280,7 @@ class Shuttle
       ftp = Net::SFTP.start(host, username, password: password)
     end
 
-    say 'Connected to FTP server '.green + '‎️‍🌈'
+    say 'Connected to FTP server '.green + '🌈'
     ftp
   end
 
@@ -266,7 +289,7 @@ class Shuttle
     name = BACKUP_FILE_LOCATION + file.name
     say 'Downloading ' + file.name.yellow + ' size: ' + "#{size}MB".blue
 
-    progress_format = '%e %P%% ⬇️ %B Downloaded: %c of %C bytes'
+    progress_format = '%e %P%% ⬇️  %B Downloaded: %c of %C bytes'
     progressbar = ProgressBar::ProgressBar.create format: progress_format, total: file.attributes.size
 
     ftp_object.download!(name, final_location) do |event, _, *args|
@@ -380,7 +403,9 @@ class Shuttle
 
     error 'Cannot find file #{file}' unless File.exist?(file)
     Whirly.start status: "Importing #{file}".green do
-      `mysql --host #{@mysql[:host]} --user #{@mysql[:username]} -p#{@mysql[:password]} #{db_name} < #{file} --force`
+      command = "mysql --host #{@mysql[:host]} --user #{@mysql[:username]} -p#{@mysql[:password]} #{db_name} < #{file} --force  2>&1 | grep -v \"Warning: Using a password\" > /dev/null"
+      command = "ssh #{@username}@#{@host} " + command if @production
+      result = `#{command}`
     end
     say "#{file} successfully imported into #{db_name}"
   end
@@ -426,7 +451,7 @@ class Shuttle
   def error(message, continue = false)
     spacing = '     '
     say '------------------------------------------------------------'.red
-    say spacing + '💥Error💥'.red
+    say spacing + '💥 Error 💥'.red
     say spacing + message if message.is_a? String
     message.each { |line| say spacing + line } if message.is_a? Array
     say '------------------------------------------------------------'.red
@@ -436,13 +461,12 @@ class Shuttle
   def success(message, continue = true)
     spacing = '     '
     say '------------------------------------------------------------'.green
-    say spacing + '✨Success✨'.green
+    say spacing + '✨ Success ✨'.green
     say spacing + message if message.is_a? String
     message.each { |line| say spacing + line } if message.is_a? Array
     say '------------------------------------------------------------'.green
     exit unless continue
   end
-
 end
 
 Shuttle.new.run if $0 == __FILE__
