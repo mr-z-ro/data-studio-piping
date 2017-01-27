@@ -177,7 +177,7 @@ class Shuttle
         @password = options.p
 
         # create_database 'test', options.production
-        #download_backup
+        download_backup
 
         # Create new database to manipulate the data in
         delete_database 'openair_new'
@@ -188,32 +188,32 @@ class Shuttle
         delete_database 'google_data_studio_new'
         load_procedures './stored_procedures.sql'
 
-        # say "Backing up current databases and moving new databases into place...\n"
-        # # This creates the databases if they don't exist
-        # create_database 'openair'
+        say "Backing up current databases and moving new databases into place...\n"
+        # This creates the databases if they don't exist
+        create_database 'openair'
 
-        # # Create backup
-        # delete_database 'openair_old'
-        # create_database 'openair_old'
-        # move_database 'openair', 'openair_old'
+        # Create backup
+        delete_database 'openair_old'
+        create_database 'openair_old'
+        move_database 'openair', 'openair_old'
 
-        # # Make our new one live
-        # move_database 'openair_new', 'openair'
+        # Make our new one live
+        move_database 'openair_new', 'openair'
 
-        # # If there's not a google database already'
-        # create_database 'google_data_studio'
-        # delete_database 'google_data_studio_old'
-        # create_database 'google_data_studio_old'
+        # If there's not a google database already'
+        create_database 'google_data_studio'
+        delete_database 'google_data_studio_old'
+        create_database 'google_data_studio_old'
 
-        # # Make backup and make new database live
-        # move_database 'google_data_studio', 'google_data_studio_old'
-        # move_database 'google_data_studio_new', 'google_data_studio'
+        # Make backup and make new database live
+        move_database 'google_data_studio', 'google_data_studio_old'
+        move_database 'google_data_studio_new', 'google_data_studio'
 
-        # # cleanup
-        # say "Cleaning up files and old databases...\n"
-        # delete_database('openair_new')
-        # delete_database('google_data_studio_new')
-        # delete("./#{DOWNLOADED_FILE_NAME}")
+        # cleanup
+        say "Cleaning up files and old databases...\n"
+        delete_database('openair_new')
+        delete_database('google_data_studio_new')
+        delete("./#{DOWNLOADED_FILE_NAME}")
         success 'Update complete! 🎉🎉🎉'
       end
     end
@@ -263,7 +263,7 @@ class Shuttle
     ftp_object_temp = ftp_object
     Whirly.start status: 'Checking if backup file exists'.green do
       files = ftp_object_temp.dir.entries(BACKUP_FILE_LOCATION).keep_if { |e| e.name =~/^(openair_)[\d-]+.zip$/}
-      file_exists = files[0]
+      file_exists = files.last
     end
 
     file_exists
