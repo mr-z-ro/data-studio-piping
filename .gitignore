@@ -3,3 +3,4 @@
 tempfile
 *.zip
 tempfile*/
+launch.sh
