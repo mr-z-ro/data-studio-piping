@@ -262,7 +262,7 @@ class Shuttle
     file_exists = nil
     ftp_object_temp = ftp_object
     Whirly.start status: 'Checking if backup file exists'.green do
-      files = ftp_object_temp.dir.entries(BACKUP_FILE_LOCATION).keep_if { |e| e.name =~/^(openair_)[\d-]+.zip$/}
+      files = ftp_object_temp.dir.entries(BACKUP_FILE_LOCATION).select { |e| e.name =~/^(openair_)[\d-]+.zip$/}.sort_by { |e| e.name }
       file_exists = files.last
     end
 
