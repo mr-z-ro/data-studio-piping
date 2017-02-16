@@ -208,34 +208,6 @@ BEGIN
 	  END IF;
       SET dateStart = date_add(dateStart, INTERVAL 1 DAY);
 	END WHILE;
-	     
-		# Populate daily bookings table
-	INSERT INTO google_data_studio_new.bookings_daily
-	(`id`, `booking_id`, `associate`, `practice`, `client_name`, `project_name`, `task_name`, `booking_type`, `start_date`, `end_date`, `date`, `week_of_booking`, `week_of_year`, `week_of_year_iso`, `total_booking_hours`, `hours`, `percentage`, `booking_created`, `booking_updated`, `associate_task_rate`, `associate_task_currency`, `dollars`)
-	SELECT 
-	  NULL, 
-	  id, 
-	  associate, 
-	  practice, 
-	  client_name, 
-	  project_name, 
-	  task_name, 
-	  booking_type, 
-	  start_date, 
-	  end_date, 
-	  dt, 
-	  FLOOR((DATEDIFF(dt, start_date))/7 + 1), 
-	  WEEK(dt), 
-	  CONCAT("W", LPAD(WEEK(dt), 2, '0')), 
-	  hours, 
-	  hours / openair_new.TOTAL_WEEKDAYS(start_date, end_date), 
-	  percentage, 
-	  booking_created, 
-	  booking_updated, 
-	  associate_task_rate, 
-	  associate_task_currency, 
-	  NULL
-	FROM google_data_studio_new.bookings b JOIN google_data_studio_new.all_dates ad ON (ad.dt BETWEEN start_date AND end_date);
 
 	# Populate daily bookings table
 	INSERT INTO google_data_studio_new.bookings_daily
