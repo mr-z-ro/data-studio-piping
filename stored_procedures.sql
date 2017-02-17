@@ -212,30 +212,55 @@ BEGIN
 	# Populate daily bookings table
 	INSERT INTO google_data_studio_new.bookings_daily
 	(`id`, `booking_id`, `associate`, `practice`, `client_name`, `project_name`, `task_name`, `booking_type`, `start_date`, `end_date`, `date`, `week_of_booking`, `week_of_year`, `week_of_year_iso`, `total_booking_hours`, `hours`, `percentage`, `booking_created`, `booking_updated`, `associate_task_rate`, `associate_task_currency`, `dollars`)
-	SELECT 
-	  NULL, 
-	  id, 
+    	SELECT 
+      	id, 
+	  GROUP_CONCAT(booking_id), 
 	  associate, 
 	  practice, 
 	  client_name, 
 	  project_name, 
 	  task_name, 
 	  booking_type, 
-	  start_date, 
-	  end_date, 
-	  dt, 
-	  FLOOR((DATEDIFF(dt, start_date))/7 + 1), 
-	  WEEK(dt), 
-	  CONCAT("W", LPAD(WEEK(dt), 2, '0')), 
-	  hours, 
-	  hours / openair_new.TOTAL_WEEKDAYS(start_date, end_date), 
-	  percentage, 
-	  booking_created, 
-	  booking_updated, 
-	  associate_task_rate, 
-	  associate_task_currency, 
-	  NULL
-	FROM google_data_studio_new.bookings b JOIN google_data_studio_new.all_dates ad ON (ad.dt BETWEEN start_date AND end_date);
+	  GROUP_CONCAT(start_date), 
+		  GROUP_CONCAT(end_date), 
+		  date, 
+		  week_of_booking, 
+		  week_of_year, 
+		  week_of_year_iso, 
+		  GROUP_CONCAT(total_booking_hours), 
+		  SUM(hours), 
+		  SUM(percentage), 
+		  GROUP_CONCAT(booking_created), 
+		  GROUP_CONCAT(booking_updated), 
+		  associate_task_rate, 
+		  associate_task_currency, 
+		  dollars
+	    FROM
+	    (SELECT 
+		  NULL AS "id", 
+		  id AS "booking_id", 
+		  associate, 
+		  practice, 
+		  client_name, 
+		  project_name, 
+		  task_name, 
+		  booking_type, 
+		  start_date, 
+		  end_date, 
+		  dt AS "date", 
+		  FLOOR((DATEDIFF(dt, start_date))/7 + 1) AS "week_of_booking", 
+		  WEEK(dt) AS "week_of_year", 
+		  CONCAT("W", LPAD(WEEK(dt), 2, '0')) AS "week_of_year_iso", 
+		  hours AS "total_booking_hours", 
+		  hours / openair_new.TOTAL_WEEKDAYS(start_date, end_date) AS "hours", 
+		  percentage, 
+		  booking_created, 
+		  booking_updated, 
+		  associate_task_rate, 
+		  associate_task_currency, 
+		  NULL AS "dollars"
+		FROM google_data_studio_new.bookings b JOIN google_data_studio_new.all_dates ad ON (ad.dt BETWEEN start_date AND end_date)) t
+	GROUP BY date, associate, project_name, task_name;
 	UPDATE google_data_studio_new.bookings_daily SET dollars=hours*associate_task_rate/8;
 	
 	# Populate table of timesheets and bookings daily
