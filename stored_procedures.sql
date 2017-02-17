@@ -98,6 +98,23 @@ BEGIN
   PRIMARY KEY (`id`)
   ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
   
+  # Create table for consulting associates fees and expenses
+  CREATE TABLE google_data_studio_new.consulting_associates (
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `purchase_item_id` int(11) NOT NULL DEFAULT '-1',
+    `type` varchar(200) NOT NULL DEFAULT '',
+    `associate` varchar(200) NOT NULL DEFAULT '',
+    `project_name` varchar(200) NOT NULL DEFAULT '',
+    `rate` decimal(17,3) NOT NULL DEFAULT '0.000',
+    `quantity` decimal(12,2) NOT NULL DEFAULT '0.000',
+    `dollars` decimal(16,2) NOT NULL DEFAULT '0.000',
+    `date` date NOT NULL DEFAULT '0000-00-00',
+    `year` int(4) NOT NULL DEFAULT '0',
+    `week_of_year` int(3) NOT NULL DEFAULT '0',
+    `week_of_year_iso` char(3) DEFAULT NULL,
+    PRIMARY KEY (`id`)
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+  
   # Create table to hold transformed expenses (envelopes)
   CREATE TABLE google_data_studio_new.expenses (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -335,6 +352,27 @@ BEGIN
 		LEFT JOIN openair_new.department d ON u.department_id = d.id
 		LEFT JOIN openair_new.project p ON e.project_id = p.id
 		LEFT JOIN openair_new.customer c ON e.customer_id = c.id;
+		
+	# Insert consulting associates' fees and expenses
+	INSERT INTO google_data_studio_new.consulting_associates (`id`, `purchase_item_id`, `type`, `associate`, `project_name`, `rate`, `quantity`, `dollars`, `date`, `year`, `week_of_year`, `week_of_year_iso`)
+	SELECT
+	  NULL,
+	  pi.id AS "purchase_item_id",
+	  IF(prod.name = "Consultant/Associates", "Fees", "Expenses") AS "type",
+	  v.name AS "associate",
+	  proj.name AS "project_name",
+	  pi.cost AS "rate",
+	  pi.quantity AS "quantity",
+	  pi.total AS "dollars",
+	  pi.date AS "date",
+	  YEAR(pi.date) AS "year",
+	  WEEK(pi.date) AS "week_of_year", 
+	  CONCAT("W", LPAD(WEEK(pi.date), 2, '0')) AS "week_of_year_iso"
+	FROM
+	  openair_new.purchase_item pi
+	  LEFT JOIN openair_new.vendor v ON pi.vendor_id = v.id
+	  LEFT JOIN openair_new.product prod ON pi.product_id = prod.id
+	  LEFT JOIN openair_new.project proj ON pi.project_id = proj.id;
 END;
 #$#$#$
 
