@@ -289,8 +289,7 @@ BEGIN
 	    (b.date = t.entry_date AND
 	     b.associate = t.associate AND
 	     b.project_name = t.project_name AND
-	     b.task_name = t.task_name)
-	WHERE b.date BETWEEN (SELECT min(entry_date) FROM google_data_studio_new.timesheets) AND (SELECT max(entry_date) FROM google_data_studio_new.timesheets);
+	     b.task_name = t.task_name);
 	
 	INSERT INTO google_data_studio_new.timesheets_vs_bookings_daily
 	SELECT
