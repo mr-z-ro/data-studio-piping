@@ -271,6 +271,7 @@ BEGIN
 		  practice, 
 		  client_name, 
 		  project_name, 
+		  project_is_billable,
 		  task_name, 
 		  booking_type, 
 		  start_date, 
