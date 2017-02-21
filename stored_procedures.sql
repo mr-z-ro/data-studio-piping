@@ -13,6 +13,7 @@ BEGIN
   `practice` varchar(200) NOT NULL DEFAULT '',
   `client_name` varchar(200) NOT NULL DEFAULT '',
   `project_name` varchar(200) NOT NULL DEFAULT '',
+  `project_is_billable` char(1) NOT NULL DEFAULT '0',
   `task_name` varchar(200) NOT NULL DEFAULT '',
   `hours` decimal(12,2) NOT NULL DEFAULT '0.00',
   `associate_task_rate` decimal(12,2) NOT NULL DEFAULT '0.00',
@@ -32,6 +33,7 @@ BEGIN
   `practice` varchar(200) NOT NULL DEFAULT '',
   `client_name` varchar(200) NOT NULL DEFAULT '',
   `project_name` varchar(200) NOT NULL DEFAULT '',
+  `project_is_billable` char(1) NOT NULL DEFAULT '0',
   `task_name` varchar(200) NOT NULL DEFAULT '',
   `booking_type` varchar(200) NOT NULL DEFAULT '',
   `start_date` date NOT NULL DEFAULT '0000-00-00',
@@ -54,6 +56,7 @@ BEGIN
   `practice` varchar(200) NOT NULL DEFAULT '',
   `client_name` varchar(200) NOT NULL DEFAULT '',
   `project_name` varchar(200) NOT NULL DEFAULT '',
+  `project_is_billable` char(1) NOT NULL DEFAULT '0',
   `task_name` varchar(200) NOT NULL DEFAULT '',
   `booking_type` varchar(200) NOT NULL DEFAULT '',
   `start_date` date NOT NULL DEFAULT '0000-00-00',
@@ -82,10 +85,12 @@ BEGIN
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `timesheets_id` int(11) NOT NULL,
   `bookings_daily_id` int(11) NOT NULL DEFAULT '-1',
+  `project_is_billable` char(1) NOT NULL DEFAULT '0',
   `associate` varchar(200) NOT NULL DEFAULT '',
   `practice` varchar(200) NOT NULL DEFAULT '',
   `client_name` varchar(200) NOT NULL DEFAULT '',
   `project_name` varchar(200) NOT NULL DEFAULT '',
+  `project_is_billable` char(1) NOT NULL DEFAULT '0',
   `task_name` varchar(200) NOT NULL DEFAULT '',
   `date` date NOT NULL DEFAULT '0000-00-00',
   `week_of_booking` int(3) NOT NULL DEFAULT '0',
@@ -105,6 +110,7 @@ BEGIN
     `type` varchar(200) NOT NULL DEFAULT '',
     `associate` varchar(200) NOT NULL DEFAULT '',
     `project_name` varchar(200) NOT NULL DEFAULT '',
+    `project_is_billable` char(1) NOT NULL DEFAULT '0',
     `rate` decimal(17,3) NOT NULL DEFAULT '0.000',
     `quantity` decimal(12,2) NOT NULL DEFAULT '0.000',
     `dollars` decimal(16,2) NOT NULL DEFAULT '0.000',
@@ -122,6 +128,7 @@ BEGIN
   `practice` varchar(200) NOT NULL DEFAULT '',
   `client_name` varchar(200) NOT NULL DEFAULT '',
   `project_name` varchar(200) NOT NULL DEFAULT '',
+  `project_is_billable` char(1) NOT NULL DEFAULT '0',
   `total` decimal(17,3) NOT NULL DEFAULT '0.000',
   `currency` char(3) NOT NULL DEFAULT '',
   `date` date NOT NULL DEFAULT '0000-00-00',
@@ -163,7 +170,7 @@ BEGIN
 
 	# Populate last 12 months of timesheets
 	INSERT INTO google_data_studio_new.timesheets
-	(`timesheet_id`, `entry_date`, `associate`, `practice`, `client_name`, `project_name`, `task_name`, `hours`, `associate_task_rate`, `associate_task_currency`)
+	(`timesheet_id`, `entry_date`, `associate`, `practice`, `client_name`, `project_name`, `project_is_billable`, `task_name`, `hours`, `associate_task_rate`, `associate_task_currency`)
 	SELECT
 	  ts.id AS "timesheet_id",
 	  t.date AS "entry_date", 
@@ -171,6 +178,7 @@ BEGIN
 	  d.name AS "practice",
 	  c.name AS "client_name",
 	  p.name AS "project_name", 
+	  NOT (c.name = "Bankable Frontier" OR ps.name = "Internal" OR p.custom_37 = "Non-Billable") AS "project_is_billable",
 	  pt.name AS "task_name",
 	  t.hour AS "hours",
 	  IF(ur.rate IS NULL, 0, ur.rate) AS "associate_task_rate",
@@ -183,17 +191,19 @@ BEGIN
 	LEFT JOIN openair_new.project_task pt ON t.project_task_id = pt.id
 	LEFT JOIN openair_new.customer c ON pt.customer_id = c.id
 	LEFT JOIN openair_new.up_rate ur ON t.project_id = ur.project_id AND t.user_id = ur.user_id
+	LEFT JOIN openair_new.project_stage ps ON p.project_stage_id = ps.id
 	WHERE t.date > DATE_SUB(NOW(), INTERVAL 12 MONTH);
 	UPDATE google_data_studio_new.timesheets SET dollars=hours*associate_task_rate/8;
 	
 	# Populate last 12 months of Bookings
 	INSERT INTO google_data_studio_new.bookings
-	(`associate`, `practice`, `client_name`, `project_name`, `task_name`, `booking_type`, `start_date`, `end_date`, `hours`, `percentage`, `booking_created`, `booking_updated`,`associate_task_rate`,`associate_task_currency`)
+	(`associate`, `practice`, `client_name`, `project_name`, `project_is_billable`, `task_name`, `booking_type`, `start_date`, `end_date`, `hours`, `percentage`, `booking_created`, `booking_updated`,`associate_task_rate`,`associate_task_currency`)
 	SELECT
 	  u.name AS "associate",
 	  d.name AS "practice",
 	  c.name AS "client_name",
 	  p.name AS "project_name", 
+	  NOT (c.name = "Bankable Frontier" OR ps.name = "Internal" OR p.custom_37 = "Non-Billable") AS "project_is_billable",
 	  pt.name AS "task_name",
 	  bt.name AS "booking_type",
 	  b.startdate AS "start_date",
@@ -215,6 +225,7 @@ BEGIN
 	LEFT JOIN openair_new.project_task pt ON b.project_task_id = pt.id
 	LEFT JOIN openair_new.user u ON b.user_id = u.id
 	LEFT JOIN openair_new.department d ON u.department_id = d.id
+	LEFT JOIN openair_new.project_stage ps ON p.project_stage_id = ps.id
 	WHERE b.enddate > DATE_SUB(NOW(), INTERVAL 12 MONTH);	
 	UPDATE google_data_studio_new.bookings SET dollars=hours*associate_task_rate/8;
 	
@@ -228,7 +239,7 @@ BEGIN
 
 	# Populate daily bookings table
 	INSERT INTO google_data_studio_new.bookings_daily
-	(`id`, `booking_id`, `associate`, `practice`, `client_name`, `project_name`, `task_name`, `booking_type`, `start_date`, `end_date`, `date`, `week_of_booking`, `week_of_year`, `week_of_year_iso`, `total_booking_hours`, `hours`, `percentage`, `booking_created`, `booking_updated`, `associate_task_rate`, `associate_task_currency`, `dollars`)
+	(`id`, `booking_id`, `associate`, `practice`, `client_name`, `project_name`, `project_is_billable`, `task_name`, `booking_type`, `start_date`, `end_date`, `date`, `week_of_booking`, `week_of_year`, `week_of_year_iso`, `total_booking_hours`, `hours`, `percentage`, `booking_created`, `booking_updated`, `associate_task_rate`, `associate_task_currency`, `dollars`)
     	SELECT 
       	id, 
 	  GROUP_CONCAT(booking_id), 
@@ -236,6 +247,7 @@ BEGIN
 	  practice, 
 	  client_name, 
 	  project_name, 
+	  project_is_billable, 
 	  task_name, 
 	  booking_type, 
 	  GROUP_CONCAT(start_date), 
@@ -292,6 +304,7 @@ BEGIN
 	  b.practice,
 	  b.client_name,
 	  b.project_name,
+	  b.project_is_billable,
 	  b.task_name,
 	  b.date,
 	  b.week_of_booking,
@@ -317,6 +330,7 @@ BEGIN
 	  t.practice,
 	  t.client_name,
 	  t.project_name,
+	  t.project_is_billable, 
 	  t.task_name,
 	  t.entry_date,
 	  b.week_of_booking,
@@ -335,12 +349,13 @@ BEGIN
 	WHERE b.id IS NULL;
 	
 	# Populate Expenses
-	INSERT INTO google_data_studio_new.expenses (`associate`, `practice`, `client_name`, `project_name`, `total`, `currency`, `date`, `year`, `week_of_year`, `week_of_year_iso`)
+	INSERT INTO google_data_studio_new.expenses (`associate`, `practice`, `client_name`, `project_name`, `project_is_billable`, `total`, `currency`, `date`, `year`, `week_of_year`, `week_of_year_iso`)
 	SELECT
 	  u.name AS "associate",  
 	  d.name AS "practice",
 	  c.name AS "client_name",
 	  p.name AS "project_name",
+	  NOT (c.name = "Bankable Frontier" OR ps.name = "Internal" OR p.custom_37 = "Non-Billable") AS "project_is_billable",
 	  e.total AS "total",
 	  e.currency AS "currency",
 	  e.date AS "date",
@@ -351,16 +366,18 @@ BEGIN
 		INNER JOIN openair_new.user u ON e.user_id = u.id
 		LEFT JOIN openair_new.department d ON u.department_id = d.id
 		LEFT JOIN openair_new.project p ON e.project_id = p.id
-		LEFT JOIN openair_new.customer c ON e.customer_id = c.id;
+		LEFT JOIN openair_new.customer c ON e.customer_id = c.id
+		LEFT JOIN openair_new.project_stage ps ON p.project_stage_id = ps.id;
 		
 	# Insert consulting associates' fees and expenses
-	INSERT INTO google_data_studio_new.consulting_associates (`id`, `purchase_item_id`, `type`, `associate`, `project_name`, `rate`, `quantity`, `dollars`, `date`, `year`, `week_of_year`, `week_of_year_iso`)
+	INSERT INTO google_data_studio_new.consulting_associates (`id`, `purchase_item_id`, `type`, `associate`, `project_name`, `project_is_billable`, `rate`, `quantity`, `dollars`, `date`, `year`, `week_of_year`, `week_of_year_iso`)
 	SELECT
 	  NULL,
 	  pi.id AS "purchase_item_id",
 	  IF(prod.name = "Consultant/Associates", "Fees", "Expenses") AS "type",
 	  v.name AS "associate",
 	  proj.name AS "project_name",
+	  NOT (c.name = "Bankable Frontier" OR ps.name = "Internal" OR proj.custom_37 = "Non-Billable") AS "project_is_billable",
 	  pi.cost AS "rate",
 	  pi.quantity AS "quantity",
 	  pi.total AS "dollars",
@@ -372,7 +389,9 @@ BEGIN
 	  openair_new.purchase_item pi
 	  LEFT JOIN openair_new.vendor v ON pi.vendor_id = v.id
 	  LEFT JOIN openair_new.product prod ON pi.product_id = prod.id
-	  LEFT JOIN openair_new.project proj ON pi.project_id = proj.id;
+	  LEFT JOIN openair_new.project proj ON pi.project_id = proj.id
+	  LEFT JOIN openair_new.customer c ON proj.customer_id = c.id
+	  LEFT JOIN openair_new.project_stage ps ON proj.project_stage_id = ps.id;
 END;
 #$#$#$
 
