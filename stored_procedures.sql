@@ -85,7 +85,6 @@ BEGIN
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `timesheets_id` int(11) NOT NULL,
   `bookings_daily_id` int(11) NOT NULL DEFAULT '-1',
-  `project_is_billable` char(1) NOT NULL DEFAULT '0',
   `associate` varchar(200) NOT NULL DEFAULT '',
   `practice` varchar(200) NOT NULL DEFAULT '',
   `client_name` varchar(200) NOT NULL DEFAULT '',
