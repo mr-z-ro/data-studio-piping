@@ -185,7 +185,7 @@ BEGIN
 	FROM openair_new.task t
 	INNER JOIN openair_new.timesheet ts ON t.timesheet_id = ts.id
 	INNER JOIN openair_new.user u ON t.user_id = u.id
-	LEFT JOIN openair_new.department d ON u.department_id = d.id
+	LEFT JOIN openair_new.cost_center c ON u.cost_center_id = d.id
 	LEFT JOIN openair_new.project p ON t.project_id = p.id
 	LEFT JOIN openair_new.project_task pt ON t.project_task_id = pt.id
 	LEFT JOIN openair_new.customer c ON pt.customer_id = c.id
@@ -223,7 +223,7 @@ BEGIN
 	LEFT JOIN openair_new.project p ON b.project_id = p.id
 	LEFT JOIN openair_new.project_task pt ON b.project_task_id = pt.id
 	LEFT JOIN openair_new.user u ON b.user_id = u.id
-	LEFT JOIN openair_new.department d ON u.department_id = d.id
+	LEFT JOIN openair_new.cost_center c ON u.cost_center_id = d.id
 	LEFT JOIN openair_new.project_stage ps ON p.project_stage_id = ps.id
 	WHERE b.enddate > DATE_SUB(NOW(), INTERVAL 12 MONTH);	
 	UPDATE google_data_studio_new.bookings SET dollars=hours*associate_task_rate/8;
@@ -364,7 +364,7 @@ BEGIN
 	  CONCAT("W", LPAD(WEEK(e.date), 2, '0')) AS "week_of_year_iso"
 	FROM openair_new.envelope e
 		INNER JOIN openair_new.user u ON e.user_id = u.id
-		LEFT JOIN openair_new.department d ON u.department_id = d.id
+		LEFT JOIN openair_new.cost_center c ON u.cost_center_id = d.id
 		LEFT JOIN openair_new.project p ON e.project_id = p.id
 		LEFT JOIN openair_new.customer c ON e.customer_id = c.id
 		LEFT JOIN openair_new.project_stage ps ON p.project_stage_id = ps.id;
