@@ -174,7 +174,7 @@ BEGIN
 	  ts.id AS "timesheet_id",
 	  t.date AS "entry_date", 
 	  u.name AS "associate",  
-	  d.name AS "practice",
+	  cc.name AS "practice",
 	  c.name AS "client_name",
 	  p.name AS "project_name", 
 	  NOT (c.name = "Bankable Frontier" OR ps.name = "Internal" OR p.custom_37 = "Non-Billable") AS "project_is_billable",
@@ -185,7 +185,7 @@ BEGIN
 	FROM openair_new.task t
 	INNER JOIN openair_new.timesheet ts ON t.timesheet_id = ts.id
 	INNER JOIN openair_new.user u ON t.user_id = u.id
-	LEFT JOIN openair_new.cost_center c ON u.cost_center_id = d.id
+	LEFT JOIN openair_new.cost_center cc ON u.cost_center_id = cc.id
 	LEFT JOIN openair_new.project p ON t.project_id = p.id
 	LEFT JOIN openair_new.project_task pt ON t.project_task_id = pt.id
 	LEFT JOIN openair_new.customer c ON pt.customer_id = c.id
@@ -199,7 +199,7 @@ BEGIN
 	(`associate`, `practice`, `client_name`, `project_name`, `project_is_billable`, `task_name`, `booking_type`, `start_date`, `end_date`, `hours`, `percentage`, `booking_created`, `booking_updated`,`associate_task_rate`,`associate_task_currency`)
 	SELECT
 	  u.name AS "associate",
-	  d.name AS "practice",
+	  cc.name AS "practice",
 	  c.name AS "client_name",
 	  p.name AS "project_name", 
 	  NOT (c.name = "Bankable Frontier" OR ps.name = "Internal" OR p.custom_37 = "Non-Billable") AS "project_is_billable",
@@ -223,7 +223,7 @@ BEGIN
 	LEFT JOIN openair_new.project p ON b.project_id = p.id
 	LEFT JOIN openair_new.project_task pt ON b.project_task_id = pt.id
 	LEFT JOIN openair_new.user u ON b.user_id = u.id
-	LEFT JOIN openair_new.cost_center c ON u.cost_center_id = d.id
+	LEFT JOIN openair_new.cost_center cc ON u.cost_center_id = cc.id
 	LEFT JOIN openair_new.project_stage ps ON p.project_stage_id = ps.id
 	WHERE b.enddate > DATE_SUB(NOW(), INTERVAL 12 MONTH);	
 	UPDATE google_data_studio_new.bookings SET dollars=hours*associate_task_rate/8;
@@ -352,7 +352,7 @@ BEGIN
 	INSERT INTO google_data_studio_new.expenses (`associate`, `practice`, `client_name`, `project_name`, `project_is_billable`, `total`, `currency`, `date`, `year`, `week_of_year`, `week_of_year_iso`)
 	SELECT
 	  u.name AS "associate",  
-	  d.name AS "practice",
+	  cc.name AS "practice",
 	  c.name AS "client_name",
 	  p.name AS "project_name",
 	  NOT (c.name = "Bankable Frontier" OR ps.name = "Internal" OR p.custom_37 = "Non-Billable") AS "project_is_billable",
@@ -364,7 +364,7 @@ BEGIN
 	  CONCAT("W", LPAD(WEEK(e.date), 2, '0')) AS "week_of_year_iso"
 	FROM openair_new.envelope e
 		INNER JOIN openair_new.user u ON e.user_id = u.id
-		LEFT JOIN openair_new.cost_center c ON u.cost_center_id = d.id
+		LEFT JOIN openair_new.cost_center cc ON u.cost_center_id = cc.id
 		LEFT JOIN openair_new.project p ON e.project_id = p.id
 		LEFT JOIN openair_new.customer c ON e.customer_id = c.id
 		LEFT JOIN openair_new.project_stage ps ON p.project_stage_id = ps.id;
