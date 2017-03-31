@@ -393,6 +393,7 @@ class Shuttle
 
     import_mysql_backup_file "#{directory}/mysql.sql", db_name
     import_mysql_backup_file "#{directory}/mysql_1.sql", db_name
+    import_mysql_backup_file "#{directory}/mysql_2.sql", db_name
   end
 
   def import_mysql_backup_file(file, db_name)
