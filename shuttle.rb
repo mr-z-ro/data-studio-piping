@@ -8,6 +8,10 @@ require 'mysql2'
 require 'net/ssh/gateway'
 require 'fileutils'
 
+# http://stackoverflow.com/a/2480439
+$stdout.reopen("/home/ubuntu/launches.log", "a")
+$stdout.sync = true
+$stderr.reopen($stdout)
 
 BACKUP_FILE_LOCATION = '/home/openair/'.freeze
 BACKUP_FILE_PREFIX = 'openair_'.freeze
@@ -16,7 +20,7 @@ DOWNLOADED_FILE_NAME = 'tempfile'.freeze
 
 MB_DIVISOR = 1_048_576
 
-Whirly.configure spinner: 'dots'
+Whirly.configure spinner: 'dots', non_tty: true
 
 class Shuttle
   include Commander::Methods
@@ -279,7 +283,6 @@ class Shuttle
     Whirly.start status: 'Connecting to FTP server...'.green do
       ftp = Net::SFTP.start(host, username, password: password)
     end
-
     say 'Connected to FTP server '.green + '🌈'
     ftp
   end
@@ -306,6 +309,7 @@ class Shuttle
     error 'No FTP host indicated' if @host.nil?
 
     @ftp_object = connect_to_ftp @host, @username, @password if @ftp_object.nil?
+
     @ftp_object
   end
 
