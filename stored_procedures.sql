@@ -299,7 +299,7 @@ BEGIN
 	INSERT INTO google_data_studio_new.timesheets_vs_bookings_daily
 	SELECT
 	  NULL AS "id",
-	  t.id AS "timesheets_id",
+	  GROUP_CONCAT(t.id) AS "timesheets_id",
 	  b.id AS "bookings_daily_id",
 	  b.associate,
 	  b.practice,
@@ -312,15 +312,16 @@ BEGIN
 	  b.week_of_year_iso,
 	  b.hours AS "booking_hours",
 	  b.dollars AS "booking_dollars",
-	  t.hours AS "timesheet_hours",
-	  t.dollars AS "timesheet_dollars",
+	  SUM(t.hours) AS "timesheet_hours",
+	  SUM(t.dollars) AS "timesheet_dollars",
 	  b.associate_task_currency
 	FROM google_data_studio_new.bookings_daily b
 	  LEFT JOIN google_data_studio_new.timesheets t ON
 	    (b.date = t.entry_date AND
 	     b.associate = t.associate AND
 	     b.project_name = t.project_name AND
-	     b.task_name = t.task_name);
+	     b.task_name = t.task_name)
+	GROUP BY b.id, b.date;
 	
 	INSERT INTO google_data_studio_new.timesheets_vs_bookings_daily
 	SELECT
