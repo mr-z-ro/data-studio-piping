@@ -194,7 +194,7 @@ BEGIN
 	WHERE t.date > DATE_SUB(NOW(), INTERVAL 12 MONTH);
 	UPDATE google_data_studio_new.timesheets SET dollars=hours*associate_task_rate/8;
 	
-	# Populate last 12 months of Bookings
+	# Populate last 24 months of Bookings
 	INSERT INTO google_data_studio_new.bookings
 	(`associate`, `practice`, `client_name`, `project_name`, `project_is_billable`, `task_name`, `booking_type`, `start_date`, `end_date`, `hours`, `percentage`, `booking_created`, `booking_updated`,`associate_task_rate`,`associate_task_currency`)
 	SELECT
@@ -225,7 +225,8 @@ BEGIN
 	LEFT JOIN openair_new.user u ON b.user_id = u.id
 	LEFT JOIN openair_new.cost_center cc ON u.cost_center_id = cc.id
 	LEFT JOIN openair_new.project_stage ps ON p.project_stage_id = ps.id
-	WHERE b.enddate > DATE_SUB(NOW(), INTERVAL 12 MONTH);	
+	WHERE b.enddate > DATE_SUB(NOW(), INTERVAL 24 MONTH)
+	AND b.deleted <> 1;	
 	UPDATE google_data_studio_new.bookings SET dollars=hours*associate_task_rate/8;
 	
 	# Populate all_dates table, excluding weekends
