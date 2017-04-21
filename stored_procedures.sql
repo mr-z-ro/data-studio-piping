@@ -179,7 +179,7 @@ BEGIN
 	  p.name AS "project_name", 
 	  NOT (c.name = "Bankable Frontier" OR ps.name = "Internal" OR p.custom_37 = "Non-Billable") AS "project_is_billable",
 	  pt.name AS "task_name",
-	  t.hour AS "hours",
+	  (t.hour + t.minute/60) AS "hours",
 	  IF(ur.rate IS NULL, 0, ur.rate) AS "associate_task_rate",
 	  IF(ur.currency IS NULL, "", ur.currency) AS "associate_task_currency"
 	FROM openair_new.task t
