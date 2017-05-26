@@ -214,12 +214,14 @@ BEGIN
 	  b.updated AS "booking_updated",
 	  (SELECT
 	    IF(ur.rate IS NULL, 0, ur.rate)
-	   FROM openair_new.up_rate ur LEFT JOIN openair_new.project_billing_rule pbr ON ur.project_billing_rule_id=pbr.id
-	   WHERE (b.project_id = ur.project_id AND b.user_id = ur.user_id AND FIND_IN_SET(pt.id, pbr.project_task_filter))) AS "associate_task_rate",
+	   FROM openair.up_rate ur LEFT JOIN openair.project_billing_rule pbr ON ur.project_billing_rule_id=pbr.id
+	   WHERE (b.project_id = ur.project_id AND b.user_id = ur.user_id AND FIND_IN_SET(pt.id, pbr.project_task_filter))
+	   ORDER BY ur.created DESC LIMIT 1) AS "associate_task_rate",
 	  (SELECT
 	    IF(ur.currency IS NULL, "", ur.currency)
-	   FROM openair_new.up_rate ur LEFT JOIN openair_new.project_billing_rule pbr ON ur.project_billing_rule_id=pbr.id
-	    WHERE (b.project_id = ur.project_id AND b.user_id = ur.user_id AND FIND_IN_SET(pt.id, pbr.project_task_filter))) AS "associate_task_currency"
+	   FROM openair.up_rate ur LEFT JOIN openair.project_billing_rule pbr ON ur.project_billing_rule_id=pbr.id
+	   WHERE (b.project_id = ur.project_id AND b.user_id = ur.user_id AND FIND_IN_SET(pt.id, pbr.project_task_filter))
+	   ORDER BY ur.created DESC LIMIT 1) AS "associate_task_currency"
 	FROM openair_new.booking b 
 	LEFT JOIN openair_new.booking_type bt ON b.booking_type_id = bt.id
 	LEFT JOIN openair_new.customer c ON b.customer_id = c.id
