@@ -189,7 +189,8 @@ BEGIN
 	LEFT JOIN openair_new.project p ON t.project_id = p.id
 	LEFT JOIN openair_new.project_task pt ON t.project_task_id = pt.id
 	LEFT JOIN openair_new.customer c ON pt.customer_id = c.id
-	LEFT JOIN openair_new.up_rate ur ON t.project_id = ur.project_id AND t.user_id = ur.user_id
+	LEFT JOIN openair_new.project_billing_rule pbr ON pbr.project_task_filter = pt.id
+	LEFT JOIN openair_new.up_rate ur ON t.project_id = ur.project_id AND t.user_id = ur.user_id AND pbr.id = ur.project_billing_rule_id
 	LEFT JOIN openair_new.project_stage ps ON p.project_stage_id = ps.id
 	WHERE t.date > DATE_SUB(NOW(), INTERVAL 24 MONTH) AND t.deleted <> 1;
 	UPDATE google_data_studio_new.timesheets SET dollars=hours*associate_task_rate/8;
@@ -212,11 +213,13 @@ BEGIN
 	  b.created AS "booking_created",
 	  b.updated AS "booking_updated",
 	  (SELECT
-	    IF(ur.rate IS NULL, 0, ur.rate) AS "associate_task_rate"
-	   FROM openair_new.up_rate ur WHERE (b.project_id = ur.project_id AND b.user_id = ur.user_id) LIMIT 1),
+	    IF(ur.rate IS NULL, 0, ur.rate)
+	   FROM openair_new.up_rate ur LEFT JOIN openair_new.project_billing_rule pbr ON ur.project_billing_rule_id=pbr.id
+	   WHERE (b.project_id = ur.project_id AND b.user_id = ur.user_id AND pbr.project_task_filter = pt.id)) AS "associate_task_rate",
 	  (SELECT
-	    IF(ur.currency IS NULL, "", ur.currency) AS "associate_task_currency"
-	   FROM openair_new.up_rate ur WHERE (b.project_id = ur.project_id AND b.user_id = ur.user_id) LIMIT 1)
+	    IF(ur.currency IS NULL, "", ur.currency)
+	   FROM openair_new.up_rate ur LEFT JOIN openair_new.project_billing_rule pbr ON ur.project_billing_rule_id=pbr.id
+	    WHERE (b.project_id = ur.project_id AND b.user_id = ur.user_id AND pbr.project_task_filter = pt.id)) AS "associate_task_currency"
 	FROM openair_new.booking b 
 	LEFT JOIN openair_new.booking_type bt ON b.booking_type_id = bt.id
 	LEFT JOIN openair_new.customer c ON b.customer_id = c.id
