@@ -167,7 +167,7 @@ BEGIN
 	DECLARE dateStart DATE DEFAULT DATE('2010-01-01');
 	DECLARE dateEnd DATE DEFAULT DATE('2025-12-31');
 
-	# Populate last 12 months of timesheets
+	# Populate last 24 months of timesheets
 	INSERT INTO google_data_studio_new.timesheets
 	(`timesheet_id`, `entry_date`, `associate`, `practice`, `client_name`, `project_name`, `project_is_billable`, `task_name`, `hours`, `associate_task_rate`, `associate_task_currency`)
 	SELECT
@@ -191,7 +191,7 @@ BEGIN
 	LEFT JOIN openair_new.customer c ON pt.customer_id = c.id
 	LEFT JOIN openair_new.up_rate ur ON t.project_id = ur.project_id AND t.user_id = ur.user_id
 	LEFT JOIN openair_new.project_stage ps ON p.project_stage_id = ps.id
-	WHERE t.date > DATE_SUB(NOW(), INTERVAL 12 MONTH);
+	WHERE t.date > DATE_SUB(NOW(), INTERVAL 24 MONTH) AND t.deleted <> 1;
 	UPDATE google_data_studio_new.timesheets SET dollars=hours*associate_task_rate/8;
 	
 	# Populate last 24 months of Bookings
