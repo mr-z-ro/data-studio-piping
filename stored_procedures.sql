@@ -4,6 +4,19 @@ BEGIN
   # Create DB
   CREATE DATABASE google_data_studio_new;
   
+  # Create table to hold access keys for google sheets booking interface
+  CREATE TABLE google_data_studio_new.access_keys (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `pid` int(11) unsigned NOT NULL,
+  `tid` int(11) unsigned NOT NULL,
+  `uid` int(11) unsigned NOT NULL,
+  `uuid` varchar(64) NOT NULL DEFAULT '',
+  `openair_access_token` varchar(64) NOT NULL DEFAULT '',
+  `time_created` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`),
+  KEY `uuid` (`uuid`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  
   # Create Table to hold transformed timesheets
   CREATE TABLE google_data_studio_new.timesheets (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -166,6 +179,10 @@ BEGIN
 	# For all_dates table
 	DECLARE dateStart DATE DEFAULT DATE('2010-01-01');
 	DECLARE dateEnd DATE DEFAULT DATE('2025-12-31');
+
+	# Populate access_keys table with yesterday's data
+	INSERT INTO google_data_studio_new.access_keys (`id`, `pid`, `tid`, `uid`, `uuid`, `openair_access_token`, `time_created`)
+	SELECT id, pid, tid, uid, uuid, openair_access_token, time_created FROM google_data_studio.access_keys;
 
 	# Populate last 24 months of timesheets
 	INSERT INTO google_data_studio_new.timesheets
