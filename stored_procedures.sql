@@ -185,8 +185,7 @@ BEGIN
 	SELECT id, pid, tid, uid, uuid, openair_access_token, time_created FROM google_data_studio.access_keys;
 
 	# Populate last 24 months of timesheets
-	INSERT INTO google_data_studio_new.timesheets
-	(`timesheet_id`, `entry_date`, `associate`, `practice`, `client_name`, `project_name`, `project_is_billable`, `task_name`, `hours`, `associate_task_rate`, `associate_task_currency`)
+	INSERT INTO google_data_studio_new.timesheets (`timesheet_id`, `entry_date`, `associate`, `practice`, `client_name`, `project_name`, `project_is_billable`, `task_name`, `hours`, `associate_task_rate`, `associate_task_currency`)
 	SELECT
 	  ts.id AS "timesheet_id",
 	  t.date AS "entry_date", 
@@ -197,8 +196,8 @@ BEGIN
 	  NOT (c.name = "Bankable Frontier" OR ps.name = "Internal" OR p.custom_37 = "Non-Billable") AS "project_is_billable",
 	  pt.name AS "task_name",
 	  (t.hour + t.minute/60) AS "hours",
-	  IF(ur.rate IS NULL, 0, ur.rate) AS "associate_task_rate",
-	  IF(ur.currency IS NULL, "", ur.currency) AS "associate_task_currency"
+	  0 AS "associate_task_rate",
+	  "" AS "associate_task_currency"
 	FROM openair_new.task t
 	INNER JOIN openair_new.timesheet ts ON t.timesheet_id = ts.id
 	INNER JOIN openair_new.user u ON t.user_id = u.id
@@ -206,10 +205,37 @@ BEGIN
 	LEFT JOIN openair_new.project p ON t.project_id = p.id
 	LEFT JOIN openair_new.project_task pt ON t.project_task_id = pt.id
 	LEFT JOIN openair_new.customer c ON pt.customer_id = c.id
-	LEFT JOIN openair_new.project_billing_rule pbr ON FIND_IN_SET(pt.id, pbr.project_task_filter)
-	LEFT JOIN openair_new.up_rate ur ON t.project_id = ur.project_id AND t.user_id = ur.user_id AND (pbr.id = ur.project_billing_rule_id)
 	LEFT JOIN openair_new.project_stage ps ON p.project_stage_id = ps.id
 	WHERE t.date > DATE_SUB(NOW(), INTERVAL 24 MONTH) AND t.deleted <> 1;
+	
+	# Set timesheet rates
+	UPDATE google_data_studio_new.timesheets ts
+	INNER JOIN
+	(SELECT ur.rate, 
+			ur.currency, 
+			u.name AS "associate", 
+			p.name AS "project_name", 
+			pt.name AS "task_name", 
+			pbr.start_date, 
+			pbr.end_date
+	  FROM openair_new.project_billing_rule pbr
+	  LEFT JOIN openair_new.up_rate ur ON pbr.id = ur.project_billing_rule_id
+	  LEFT JOIN openair_new.user u ON ur.user_id = u.id
+	  LEFT JOIN openair_new.project p ON ur.project_id = p.id
+	  LEFT JOIN openair_new.project_task pt ON FIND_IN_SET(pt.id, pbr.project_task_filter)
+	  ) AS t
+	ON (t.associate = ts.associate
+		AND t.project_name = ts.project_name
+		AND t.task_name = ts.task_name
+		AND (ts.entry_date BETWEEN t.start_date AND t.end_date 
+				OR (t.start_date < ts.entry_date AND t.end_date = "0000-00-00")
+			)
+		)
+	SET 
+	  ts.associate_task_rate = t.rate,
+	  ts.associate_task_currency = t.currency;
+
+	# Set timesheet entry dollar values
 	UPDATE google_data_studio_new.timesheets SET dollars=hours*associate_task_rate/8;
 	
 	# Populate last 24 months of Bookings
@@ -231,12 +257,12 @@ BEGIN
 	  b.updated AS "booking_updated",
 	  (SELECT
 	    IF(ur.rate IS NULL, 0, ur.rate)
-	   FROM openair.up_rate ur LEFT JOIN openair.project_billing_rule pbr ON ur.project_billing_rule_id=pbr.id
+	   FROM openair_new.up_rate ur LEFT JOIN openair_new.project_billing_rule pbr ON ur.project_billing_rule_id=pbr.id
 	   WHERE (b.project_id = ur.project_id AND b.user_id = ur.user_id AND FIND_IN_SET(pt.id, pbr.project_task_filter))
 	   ORDER BY ur.created DESC LIMIT 1) AS "associate_task_rate",
 	  (SELECT
 	    IF(ur.currency IS NULL, "", ur.currency)
-	   FROM openair.up_rate ur LEFT JOIN openair.project_billing_rule pbr ON ur.project_billing_rule_id=pbr.id
+	   FROM openair_new.up_rate ur LEFT JOIN openair_new.project_billing_rule pbr ON ur.project_billing_rule_id=pbr.id
 	   WHERE (b.project_id = ur.project_id AND b.user_id = ur.user_id AND FIND_IN_SET(pt.id, pbr.project_task_filter))
 	   ORDER BY ur.created DESC LIMIT 1) AS "associate_task_currency"
 	FROM openair_new.booking b 
