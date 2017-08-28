@@ -327,8 +327,8 @@ BEGIN
 		  end_date, 
 		  dt AS "date", 
 		  FLOOR((DATEDIFF(dt, start_date))/7 + 1) AS "week_of_booking", 
-		  WEEK(dt) AS "week_of_year", 
-		  CONCAT("W", LPAD(WEEK(dt), 2, '0')) AS "week_of_year_iso", 
+		  WEEKOFYEAR(dt) AS "week_of_year", 
+		  CONCAT("W", LPAD(WEEKOFYEAR(dt), 2, '0')) AS "week_of_year_iso", 
 		  hours AS "total_booking_hours", 
 		  hours / openair_new.TOTAL_WEEKDAYS(start_date, end_date) AS "hours", 
 		  percentage, 
@@ -384,7 +384,7 @@ BEGIN
 	  t.task_name,
 	  t.entry_date,
 	  b.week_of_booking,
-	  CONCAT("W", LPAD(WEEK(t.entry_date), 2, '0')) AS "week_of_year_iso",
+	  CONCAT("W", LPAD(WEEKOFYEAR(t.entry_date), 2, '0')) AS "week_of_year_iso",
 	  b.hours AS "booking_hours",
 	  b.dollars AS "booking_dollars",
 	  t.hours AS "timesheet_hours",
@@ -410,8 +410,8 @@ BEGIN
 	  e.currency AS "currency",
 	  e.date AS "date",
 	  YEAR(e.date) AS "year",
-	  WEEK(e.date) AS "week_of_year", 
-	  CONCAT("W", LPAD(WEEK(e.date), 2, '0')) AS "week_of_year_iso"
+	  WEEKOFYEAR(e.date) AS "week_of_year", 
+	  CONCAT("W", LPAD(WEEKOFYEAR(e.date), 2, '0')) AS "week_of_year_iso"
 	FROM openair_new.envelope e
 		INNER JOIN openair_new.user u ON e.user_id = u.id
 		LEFT JOIN openair_new.cost_center cc ON u.cost_center_id = cc.id
@@ -433,8 +433,8 @@ BEGIN
 	  pi.total AS "dollars",
 	  pi.date AS "date",
 	  YEAR(pi.date) AS "year",
-	  WEEK(pi.date) AS "week_of_year", 
-	  CONCAT("W", LPAD(WEEK(pi.date), 2, '0')) AS "week_of_year_iso"
+	  WEEKOFYEAR(pi.date) AS "week_of_year", 
+	  CONCAT("W", LPAD(WEEKOFYEAR(pi.date), 2, '0')) AS "week_of_year_iso"
 	FROM
 	  openair_new.purchase_item pi
 	  LEFT JOIN openair_new.vendor v ON pi.vendor_id = v.id
