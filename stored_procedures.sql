@@ -442,6 +442,35 @@ BEGIN
 	  LEFT JOIN openair_new.project proj ON pi.project_id = proj.id
 	  LEFT JOIN openair_new.customer c ON proj.customer_id = c.id
 	  LEFT JOIN openair_new.project_stage ps ON proj.project_stage_id = ps.id;
+	
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="FinTech" WHERE associate="Grasser, Matthew";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="FinTech" WHERE associate="Swarup, Rasima";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="FinTech" WHERE associate="Rakesh, Ranjan";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="FinTech" WHERE associate="Nyaga, Asa";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="FinTech" WHERE associate="del Ser, David";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="QA" WHERE associate="Amin, Ashirul";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="QA" WHERE associate="Gathecha, Benson";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="QA" WHERE associate="Oldja, Lauren";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Business Insights" WHERE associate="Gomez, Natalia";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Business Insights" WHERE associate="Amoah, Roland";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Business Insights" WHERE associate="Carraro, Maelis";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Business Insights" WHERE associate="Abrams, Jeffrey";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Business Insights" WHERE associate="Hernandez, Jorge";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="I&I" WHERE associate="del Ser, Jane";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="I&I" WHERE associate="Seltzer, Yanina";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="I&I" WHERE associate="Merab, Carmen";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="I&I" WHERE associate="Anand, Malika";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Consumer Insights" WHERE associate="White, Gabriel";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Consulting Associate" WHERE associate="Guess, Christopher";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Consulting Associate" WHERE associate="Lambert, Zachary";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Consulting Associate" WHERE associate="Winiecki, Jacob";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Consulting Associate" WHERE associate="Kaddaras, James";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Consulting Associate" WHERE associate="Mas, Ignacio";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Consulting Associate" WHERE associate="Zapata Alvarez, Gabriela";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Consulting Associate" WHERE associate="Wilson, Kimberley";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Consulting Associate" WHERE associate="Lauer, Kate";
+	UPDATE google_data_studio_new.timesheets_vs_bookings_daily SET practice="Consulting Associate" WHERE associate="Pulver, Caroline";
+	
 END;
 #$#$#$
 
